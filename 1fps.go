@@ -187,28 +187,21 @@ func captureScreen() image.Image {
 }
 
 // imagesEqual compares two images pixel by pixel and returns true if they are equal.
+// imagesEqual compares two images and returns true if they are equal.
 func imagesEqual(img1, img2 image.Image) bool {
 	if img1 == nil || img2 == nil {
 		return false
 	}
 
-	bounds1 := img1.Bounds()
-	bounds2 := img2.Bounds()
-	if bounds1 != bounds2 {
+	rgba1, ok1 := img1.(*image.RGBA)
+	rgba2, ok2 := img2.(*image.RGBA)
+
+	if !ok1 || !ok2 {
+		printDebug("Unexpected image format: not RGBA")
 		return false
 	}
 
-	for y := bounds1.Min.Y; y < bounds1.Max.Y; y++ {
-		for x := bounds1.Min.X; x < bounds1.Max.X; x++ {
-			r1, g1, b1, a1 := img1.At(x, y).RGBA()
-			r2, g2, b2, a2 := img2.At(x, y).RGBA()
-			if r1 != r2 || g1 != g2 || b1 != b2 || a1 != a2 {
-				return false
-			}
-		}
-	}
-
-	return true
+	return bytes.Equal(rgba1.Pix, rgba2.Pix)
 }
 
 // resizeAndEncryptScreen resizes the captured screenshot to a fixed width, encodes it as WebP, and encrypts it.

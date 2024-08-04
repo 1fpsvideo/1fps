@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"image"
+	"image/jpeg"
 	"io"
 	"math/big"
 	"mime/multipart"
@@ -16,7 +17,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/chai2010/webp"
 	"github.com/go-vgo/robotgo"
 	"github.com/gorilla/websocket"
 	"github.com/kbinani/screenshot"
@@ -29,7 +29,7 @@ const (
 	HOST            = "http://" + REMOTE
 	WS_URL          = "ws://" + REMOTE + "/x/%s/ws"
 	UPLOAD_URL      = HOST + "/upload"
-	SCREENSHOT_PATH = "/tmp/screenshot.webp"
+	SCREENSHOT_PATH = "/tmp/screenshot.jpg"
 	KEY_LENGTH      = 10
 	SALT_LENGTH     = 16
 	IV_LENGTH       = 12
@@ -204,7 +204,7 @@ func imagesEqual(img1, img2 image.Image) bool {
 	return bytes.Equal(rgba1.Pix, rgba2.Pix)
 }
 
-// resizeAndEncryptScreen resizes the captured screenshot to a fixed width, encodes it as WebP, and encrypts it.
+// resizeAndEncryptScreen resizes the captured screenshot to a fixed width, encodes it as JPEG, and encrypts it.
 func resizeAndEncryptScreen(img image.Image) ([]byte, error) {
 	newWidth := 1280
 	newHeight := img.Bounds().Dy() * newWidth / img.Bounds().Dx()
@@ -212,8 +212,7 @@ func resizeAndEncryptScreen(img image.Image) ([]byte, error) {
 	draw.BiLinear.Scale(scaledImg, scaledImg.Bounds(), img, img.Bounds(), draw.Over, nil)
 
 	var buf bytes.Buffer
-	options := webp.Options{Lossless: false, Quality: 51}
-	err := webp.Encode(&buf, scaledImg, &options)
+	err := jpeg.Encode(&buf, scaledImg, &jpeg.Options{Quality: 75})
 	if err != nil {
 		return nil, fmt.Errorf("failed to encode image: %v", err)
 	}
@@ -258,7 +257,7 @@ func encryptData(data []byte) ([]byte, error) {
 func uploadEncryptedScreen(encryptedData []byte) error {
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
-	part, err := writer.CreateFormFile("file", "screenshot.webp")
+	part, err := writer.CreateFormFile("file", "screenshot.jpg")
 	if err != nil {
 		return fmt.Errorf("failed to create form file: %v", err)
 	}

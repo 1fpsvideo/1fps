@@ -3,7 +3,6 @@ module github.com/1fpsvideo/1fps
 go 1.22
 
 require (
-	github.com/chai2010/webp v1.1.1
 	github.com/go-vgo/robotgo v0.110.1
 	github.com/gorilla/websocket v1.5.1
 	github.com/kbinani/screenshot v0.0.0-20230812210009-b87d31814237

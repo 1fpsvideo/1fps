@@ -1,4 +1,4 @@
-module 1fps
+module github.com/1fpsvideo/1fps
 
 go 1.22
 

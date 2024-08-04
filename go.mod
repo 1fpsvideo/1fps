@@ -1,4 +1,4 @@
-module onefps
+module 1fps
 
 go 1.22
 

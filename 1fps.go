@@ -25,7 +25,7 @@ import (
 )
 
 const (
-	REMOTE          = "localhost:4567"
+	REMOTE          = "localhost:8899"
 	HOST            = "http://" + REMOTE
 	WS_URL          = "ws://" + REMOTE + "/x/%s/ws"
 	UPLOAD_URL      = HOST + "/upload"

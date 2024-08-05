@@ -15,6 +15,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/go-vgo/robotgo"
@@ -24,11 +25,15 @@ import (
 	"golang.org/x/image/draw"
 )
 
+var (
+	isDevelopment bool
+	REMOTE        string
+	HOST          string
+	WS_URL        string
+	UPLOAD_URL    string
+)
+
 const (
-	REMOTE          = "localhost:8899"
-	HOST            = "http://" + REMOTE
-	WS_URL          = "ws://" + REMOTE + "/x/%s/ws"
-	UPLOAD_URL      = HOST + "/upload"
 	SCREENSHOT_PATH = "/tmp/screenshot.jpg"
 	KEY_LENGTH      = 10
 	SALT_LENGTH     = 16
@@ -42,7 +47,48 @@ var (
 	sessionID      string
 )
 
+func initEnvironment() {
+	isDevelopment = false
+	if _, err := os.Stat(".env"); err == nil {
+		content, err := os.ReadFile(".env")
+		if err == nil {
+			lines := strings.Split(string(content), "\n")
+			for _, line := range lines {
+				if strings.HasPrefix(line, "ENV=") {
+					env := strings.TrimPrefix(line, "ENV=")
+					isDevelopment = strings.TrimSpace(env) == "development"
+					break
+				}
+			}
+		}
+	}
+
+	if isDevelopment {
+		REMOTE = "localhost:8899"
+		HOST = "http://" + REMOTE
+		WS_URL = "ws://" + REMOTE + "/x/%s/ws"
+	} else {
+		REMOTE = "1fps.video"
+		HOST = "https://" + REMOTE
+		WS_URL = "wss://" + REMOTE + "/x/%s/ws"
+	}
+	UPLOAD_URL = HOST + "/upload"
+
+	// Debug information
+	envType := "Production"
+	if isDevelopment {
+		envType = "Development"
+	}
+	printDebug(fmt.Sprintf("Environment: %s", envType))
+	printDebug(fmt.Sprintf("REMOTE: %s", REMOTE))
+	printDebug(fmt.Sprintf("HOST: %s", HOST))
+	printDebug(fmt.Sprintf("WS_URL: %s", WS_URL))
+	printDebug(fmt.Sprintf("UPLOAD_URL: %s", UPLOAD_URL))
+}
+
 func main() {
+	initEnvironment()
+
 	var err error
 	sessionID, err = createSession()
 	if err != nil {
@@ -51,7 +97,14 @@ func main() {
 	}
 
 	encryptionKey = generateRandomKey(KEY_LENGTH)
-	fmt.Printf("Access the website at: %s/x/%s#%s\n", HOST, sessionID, encryptionKey)
+	fmt.Println()
+	fmt.Println("********************************************************************************")
+	fmt.Println()
+	fmt.Print("\033[30;42mLink to your screen sharing is: \033[0m ")
+	fmt.Printf("%s/x/%s#%s\n", HOST, sessionID, encryptionKey)
+	fmt.Println()
+	fmt.Println("********************************************************************************")
+	fmt.Println()
 
 	for {
 		err := connectWebSocket()

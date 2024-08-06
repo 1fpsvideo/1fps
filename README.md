@@ -34,6 +34,24 @@ You can run the client application in one of the following ways:
    ```
    Replace `v0.1.1` with the latest version from [tags](https://github.com/1fpsvideo/1fps/tags).
 
+
+## Linux Users
+
+Linux users might need to install additional dependencies for the screen capture and cursor tracking functionality to work correctly. Specifically, you may need to install the `libxtst-dev` package:
+
+For Ubuntu or Debian-based distributions:
+
+```
+sudo apt install libxtst-dev
+```
+
+For other distributions, the package name(s) might be slightly different. Please refer to your distribution's package management system.
+
+For more detailed information about dependencies and installation instructions for different Linux distributions, you can check the RobotGo library documentation:
+
+https://github.com/go-vgo/robotgo?tab=readme-ov-file#ubuntu
+
+
 ## License
 
 This is FSL software. For more information, visit [https://fsl.software/](https://fsl.software/).

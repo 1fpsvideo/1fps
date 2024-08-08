@@ -71,6 +71,16 @@ Compiling on Windows requires a few additional steps. Please follow these instru
 
 Please note that these steps are necessary until we produce binaries for Windows. We understand that compiling on Windows has been challenging for various software projects. We're currently in alpha, so please check back later for easier installation options with pre-compiled binaries.
 
+## Development
+
+For local development, you need to create a `.env` file in the root directory of the project. The contents of the `.env` file should be:
+
+```
+ENV=development
+```
+
+This configuration sets the environment to development mode, which may enable certain debugging features or use local server addresses.
+
 ## License
 
 This is FSL software. For more information, visit [https://fsl.software/](https://fsl.software/).

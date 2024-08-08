@@ -54,9 +54,10 @@ func initEnvironment() {
 		if err == nil {
 			lines := strings.Split(string(content), "\n")
 			for _, line := range lines {
+				line = strings.TrimSpace(strings.TrimPrefix(line, "\uFEFF")) // Remove BOM if present
 				if strings.HasPrefix(line, "ENV=") {
 					env := strings.TrimPrefix(line, "ENV=")
-					isDevelopment = strings.TrimSpace(env) == "development"
+					isDevelopment = strings.EqualFold(strings.TrimSpace(env), "development")
 					break
 				}
 			}

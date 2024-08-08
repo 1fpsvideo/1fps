@@ -18,6 +18,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/1fpsvideo/1fps/cursor"
 	"github.com/go-vgo/robotgo"
 	"github.com/gorilla/websocket"
 	"github.com/kbinani/screenshot"
@@ -41,10 +42,14 @@ const (
 )
 
 var (
-	conn           *websocket.Conn
-	lastScreenshot image.Image
-	encryptionKey  string
-	sessionID      string
+	conn              *websocket.Conn
+	lastScreenshot    image.Image
+	encryptionKey     string
+	sessionID         string
+	resizedDimensions struct {
+		Width  int
+		Height int
+	}
 )
 
 func initEnvironment() {
@@ -188,15 +193,14 @@ func connectWebSocket() error {
 func sendCursorPosition() {
 	var lastX, lastY int
 	for {
-		x, y := robotgo.GetMousePos()
-		screenWidth, screenHeight := robotgo.GetScreenSize()
-		scaledX := int(float64(x) * 1280.0 / float64(screenWidth))
-		scaledY := int(float64(y) * 720.0 / float64(screenHeight))
+		scaledX, scaledY := cursor.GetCursorPosition(resizedDimensions)
 
 		if scaledX != lastX || scaledY != lastY {
 			data := map[string]int{
-				"x": scaledX,
-				"y": scaledY,
+				"x":  scaledX,
+				"y":  scaledY,
+				"rw": resizedDimensions.Width,
+				"rh": resizedDimensions.Height,
 			}
 			err := conn.WriteJSON(data)
 			if err != nil {
@@ -260,17 +264,41 @@ func imagesEqual(img1, img2 image.Image) bool {
 
 // resizeAndEncryptScreen resizes the captured screenshot to a fixed width, encodes it as JPEG, and encrypts it.
 func resizeAndEncryptScreen(img image.Image) ([]byte, error) {
-	newWidth := 1280
-	newHeight := img.Bounds().Dy() * newWidth / img.Bounds().Dx()
-	scaledImg := image.NewRGBA(image.Rect(0, 0, newWidth, newHeight))
-	draw.BiLinear.Scale(scaledImg, scaledImg.Bounds(), img, img.Bounds(), draw.Over, nil)
+	// Get the screen width and calculate the target width
+	screenWidth, _ := robotgo.GetScreenSize()
+	targetWidth := screenWidth
+	if targetWidth > 1280 {
+		targetWidth = 1280
+	}
 
+	// Get the dimensions of the input image
+	imgWidth := img.Bounds().Dx()
+	imgHeight := img.Bounds().Dy()
+
+	var scaledImg image.Image
+
+	// Check if resizing is necessary
+	if imgWidth <= targetWidth {
+		// No need to resize, use original dimensions
+		resizedDimensions.Width = imgWidth
+		resizedDimensions.Height = imgHeight
+		scaledImg = img
+	} else {
+		// Resize the image
+		resizedDimensions.Width = targetWidth
+		resizedDimensions.Height = imgHeight * targetWidth / imgWidth
+		scaledImg = image.NewRGBA(image.Rect(0, 0, resizedDimensions.Width, resizedDimensions.Height))
+		draw.BiLinear.Scale(scaledImg.(draw.Image), scaledImg.Bounds(), img, img.Bounds(), draw.Over, nil)
+	}
+
+	// Encode the image to JPEG
 	var buf bytes.Buffer
 	err := jpeg.Encode(&buf, scaledImg, &jpeg.Options{Quality: 75})
 	if err != nil {
 		return nil, fmt.Errorf("failed to encode image: %v", err)
 	}
 
+	// Encrypt and return the image data
 	return encryptData(buf.Bytes())
 }
 

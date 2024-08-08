@@ -59,12 +59,12 @@ Compiling on Windows requires a few additional steps. Please follow these instru
 1. Install Golang, for example from https://webinstall.dev/golang/
 2. Install the GCC compiler pack from https://github.com/skeeto/w64devkit/releases
    - Download the exe file, which will automatically unpack (probably to your Downloads folder)
-   - Run w64devkit.exe
+   - Run `w64devkit.exe`
 3. In the w64devkit terminal, type:
    ```
    go env -w CGO_ENABLED=1
    ```
-4. Run the main command from the 1fps.video website. It's better to copy the command directly from the website or use the latest version from the tags:
+4. Run the main command from the 1fps.video website. **It's better to copy the command directly [from the website](https://1fps.video/) or use the latest version [from the tags](https://github.com/1fpsvideo/1fps/tags)**:
    ```
    go run github.com/1fpsvideo/1fps@v0.1.1
    ```

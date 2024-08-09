@@ -11,7 +11,6 @@ This is the client component of the 1fps Screen Share application. The server pa
 - Screen capture at 1 fps
 - End-to-end encryption of screenshots
 - Real-time cursor position tracking
-- Automatic session creation and management
 - WebSocket-based communication for cursor updates
 
 ## Requirements

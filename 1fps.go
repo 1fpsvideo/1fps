@@ -51,8 +51,7 @@ var (
 
 // log logs an event to the bottom panel
 func log(message string) {
-	currentTime := time.Now().Format("15:04:05")
-	consoleUI.WriteBottom("[yellow]%s[white] %s\n", currentTime, message)
+	consoleUI.WriteBottom(message)
 }
 
 func main() {

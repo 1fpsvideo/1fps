@@ -6,6 +6,7 @@ require (
 	github.com/go-vgo/robotgo v0.110.1
 	github.com/gorilla/websocket v1.5.1
 	github.com/kbinani/screenshot v0.0.0-20240809223827-e520a411f991
+	github.com/rivo/tview v0.0.0-20240807205129-e4c497cc59ed
 	golang.org/x/crypto v0.25.0
 	golang.org/x/image v0.16.0
 )
@@ -22,7 +23,6 @@ require (
 	github.com/mattn/go-runewidth v0.0.15 // indirect
 	github.com/otiai10/gosseract v2.2.1+incompatible // indirect
 	github.com/power-devops/perfstat v0.0.0-20221212215047-62379fc7944b // indirect
-	github.com/rivo/tview v0.0.0-20240807205129-e4c497cc59ed // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/robotn/xgb v0.0.0-20190912153532-2cb92d044934 // indirect
 	github.com/robotn/xgbutil v0.0.0-20190912154524-c861d6f87770 // indirect

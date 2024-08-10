@@ -22,6 +22,7 @@ import (
 	"github.com/go-vgo/robotgo"
 	"github.com/gorilla/websocket"
 	"github.com/kbinani/screenshot"
+	"github.com/rivo/tview"
 	"golang.org/x/crypto/pbkdf2"
 	"golang.org/x/image/draw"
 )
@@ -50,7 +51,54 @@ var (
 		Width  int
 		Height int
 	}
+	app         *tview.Application
+	topPanel    *tview.TextView
+	bottomPanel *tview.TextView
 )
+
+// initUI initializes the user interface using tview
+func initUI() {
+	app = tview.NewApplication()
+
+	// Create the top panel for static information
+	topPanel = tview.NewTextView().
+		SetDynamicColors(true).
+		SetRegions(false).
+		SetWrap(false)
+
+	// Create the bottom panel for event logs
+	bottomPanel = tview.NewTextView().
+		SetDynamicColors(true).
+		SetRegions(false).
+		SetWrap(true).
+		SetMaxLines(1000).
+		SetScrollable(true)
+
+	// Create a flex layout to divide the screen
+	flex := tview.NewFlex().
+		SetDirection(tview.FlexRow).
+		AddItem(topPanel, 5, 0, false).
+		AddItem(bottomPanel, 0, 1, true)
+
+	// Set the root of the application to our flex layout
+	app.SetRoot(flex, true)
+}
+
+// updateTopPanel updates the static information in the top panel
+func updateTopPanel() {
+	topPanel.Clear()
+	fmt.Fprintf(topPanel, "********************************************************************************\n\n")
+	fmt.Fprintf(topPanel, "[green]Link to your screen sharing is: %s/x/%s#%s[white]\n\n", HOST, sessionID, encryptionKey)
+	fmt.Fprintf(topPanel, "********************************************************************************")
+}
+
+// logEvent logs an event to the bottom panel
+func logEvent(message string) {
+	currentTime := time.Now().Format("15:04:05")
+	fmt.Fprintf(bottomPanel, "[yellow]%s[white] %s\n", currentTime, message)
+	app.Draw()
+	bottomPanel.ScrollToEnd()
+}
 
 func initEnvironment() {
 	isDevelopment = false
@@ -80,77 +128,77 @@ func initEnvironment() {
 	}
 	UPLOAD_URL = HOST + "/upload"
 
-	// Debug information
-	envType := "Production"
+	updateTopPanel()
+}
+
+func getEnvironmentType() string {
 	if isDevelopment {
-		envType = "Development"
+		return "Development"
 	}
-	printDebug(fmt.Sprintf("Environment: %s", envType))
-	printDebug(fmt.Sprintf("REMOTE: %s", REMOTE))
-	printDebug(fmt.Sprintf("HOST: %s", HOST))
-	printDebug(fmt.Sprintf("WS_URL: %s", WS_URL))
-	printDebug(fmt.Sprintf("UPLOAD_URL: %s", UPLOAD_URL))
+	return "Production"
 }
 
 func main() {
+	initUI()
 	initEnvironment()
 
 	var err error
 	sessionID, err = createSession()
 	if err != nil {
-		printDebug(fmt.Sprintf("Failed to create session: %v", err))
+		logEvent(fmt.Sprintf("Failed to create session: %v", err))
 		os.Exit(1)
 	}
 
 	encryptionKey = generateRandomKey(KEY_LENGTH)
-	fmt.Println()
-	fmt.Println("********************************************************************************")
-	fmt.Println()
-	fmt.Print("\033[30;42mLink to your screen sharing is: \033[0m ")
-	fmt.Printf("%s/x/%s#%s\n", HOST, sessionID, encryptionKey)
-	fmt.Println()
-	fmt.Println("********************************************************************************")
-	fmt.Println()
+	updateTopPanel()
 
 	for {
 		err := connectWebSocket()
 		if err == nil {
 			break
 		}
-		printDebug(fmt.Sprintf("WebSocket connection failed: %v. Retrying in 5 seconds...", err))
+		logEvent(fmt.Sprintf("WebSocket connection failed: %v. Retrying in 5 seconds...", err))
 		time.Sleep(5 * time.Second)
 	}
 	defer conn.Close()
 
 	go sendCursorPosition()
 
-	for {
-		img := captureScreen()
+	go func() {
+		for {
+			img := captureScreen()
 
-		if !imagesEqual(img, lastScreenshot) {
-			printDebug("Images are not equal. Uploading new screenshot.")
-			encryptedData, err := resizeAndEncryptScreen(img)
-			if err != nil {
-				printDebug(fmt.Sprintf("Failed to resize and encrypt screenshot: %v", err))
-				continue
-			}
-			for {
-				err := uploadEncryptedScreen(encryptedData)
-				if err == nil {
-					lastScreenshot = img
-					break
+			if !imagesEqual(img, lastScreenshot) {
+				logEvent("Images are not equal. Uploading new screenshot.")
+				encryptedData, err := resizeAndEncryptScreen(img)
+				if err != nil {
+					logEvent(fmt.Sprintf("Failed to resize and encrypt screenshot: %v", err))
+					continue
 				}
-				printDebug(fmt.Sprintf("Failed to upload screenshot: %v. Retrying...", err))
-				time.Sleep(1 * time.Second)
+				for {
+					err := uploadEncryptedScreen(encryptedData)
+					if err == nil {
+						lastScreenshot = img
+						break
+					}
+					logEvent(fmt.Sprintf("Failed to upload screenshot: %v. Retrying...", err))
+					time.Sleep(1 * time.Second)
+				}
+			} else {
+				logEvent("Images are equal. Skipping upload.")
 			}
-		} else {
-			printDebug("Images are equal. Skipping upload.")
-		}
 
-		// Sleep for 950ms before the next iteration
-		time.Sleep(950 * time.Millisecond)
+			// Sleep for 950ms before the next iteration
+			time.Sleep(950 * time.Millisecond)
+		}
+	}()
+
+	if err := app.Run(); err != nil {
+		panic(err)
 	}
 }
+
+// The rest of the functions remain the same, but replace all printDebug calls with logEvent
 
 func createSession() (string, error) {
 	resp, err := http.Post(HOST+"/v1/api/sessions", "application/json", nil)
@@ -204,13 +252,13 @@ func sendCursorPosition() {
 			}
 			err := conn.WriteJSON(data)
 			if err != nil {
-				printDebug(fmt.Sprintf("WebSocket write failed: %v", err))
+				logEvent(fmt.Sprintf("WebSocket write failed: %v", err))
 				for {
 					err := connectWebSocket()
 					if err == nil {
 						break
 					}
-					printDebug(fmt.Sprintf("WebSocket reconnection failed: %v. Retrying in 5 seconds...", err))
+					logEvent(fmt.Sprintf("WebSocket reconnection failed: %v. Retrying in 5 seconds...", err))
 					time.Sleep(5 * time.Second)
 				}
 			}
@@ -226,7 +274,7 @@ func captureScreen() image.Image {
 	for {
 		n := screenshot.NumActiveDisplays()
 		if n <= 0 {
-			printDebug("No active displays found")
+			logEvent("No active displays found")
 			time.Sleep(1 * time.Second)
 			continue
 		}
@@ -235,7 +283,7 @@ func captureScreen() image.Image {
 		bounds := screenshot.GetDisplayBounds(0)
 		img, err := screenshot.CaptureRect(bounds)
 		if err != nil {
-			printDebug("Failed to capture screen: cannot capture display: locked or switched off, retrying...")
+			logEvent("Failed to capture screen: cannot capture display: locked or switched off, retrying...")
 			time.Sleep(1 * time.Second)
 			continue
 		}
@@ -255,7 +303,7 @@ func imagesEqual(img1, img2 image.Image) bool {
 	rgba2, ok2 := img2.(*image.RGBA)
 
 	if !ok1 || !ok2 {
-		printDebug("Unexpected image format: not RGBA")
+		logEvent("Unexpected image format: not RGBA")
 		return false
 	}
 
@@ -373,11 +421,6 @@ func uploadEncryptedScreen(encryptedData []byte) error {
 		return fmt.Errorf("upload failed with status: %s", resp.Status)
 	}
 
-	printDebug("Uploaded encrypted screenshot")
+	logEvent("Uploaded encrypted screenshot")
 	return nil
-}
-
-func printDebug(message string) {
-	currentTime := time.Now().Format("15:04:05")
-	fmt.Printf("[%s] %s\n", currentTime, message)
 }

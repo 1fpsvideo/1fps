@@ -238,8 +238,8 @@ func resizeAndEncryptScreen(img image.Image) ([]byte, error) {
 	// Get the screen width and calculate the target width
 	screenWidth, _ := robotgo.GetScreenSize()
 	targetWidth := screenWidth
-	if targetWidth > 1280 {
-		targetWidth = 1280
+	if targetWidth > getMaxTargetWidth() {
+		targetWidth = getMaxTargetWidth()
 	}
 
 	// Get the dimensions of the input image
@@ -264,7 +264,7 @@ func resizeAndEncryptScreen(img image.Image) ([]byte, error) {
 
 	// Encode the image to JPEG
 	var buf bytes.Buffer
-	err := jpeg.Encode(&buf, scaledImg, &jpeg.Options{Quality: 75})
+	err := jpeg.Encode(&buf, scaledImg, &jpeg.Options{Quality: getJpegQuality()})
 	if err != nil {
 		return nil, fmt.Errorf("failed to encode image: %v", err)
 	}
@@ -346,4 +346,38 @@ func uploadEncryptedScreen(encryptedData []byte) error {
 
 	log("Uploaded encrypted screenshot")
 	return nil
+}
+
+func getMaxTargetWidth() int {
+	if consoleUI == nil {
+		return 1280
+	}
+
+	switch consoleUI.ScreenSize {
+	case consoleui.Small:
+		return 1080
+	case consoleui.Medium:
+		return 1280
+	case consoleui.Large:
+		return 1920
+	default:
+		return 1280 // Default to Medium size if unknown
+	}
+}
+
+func getJpegQuality() int {
+	if consoleUI == nil {
+		return 75 // Default to Normal quality if consoleUI is not initialized
+	}
+
+	switch consoleUI.Quality {
+	case consoleui.Low:
+		return 10
+	case consoleui.Normal:
+		return 75
+	case consoleui.High:
+		return 95
+	default:
+		return 75 // Default to Normal quality if unknown
+	}
 }

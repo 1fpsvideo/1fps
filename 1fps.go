@@ -74,10 +74,7 @@ func main() {
 
 	consoleUI = consoleui.Start()
 	encryptionKey = generateRandomKey(KEY_LENGTH)
-
-	consoleUI.WriteTop("********************************************************************************\n\n")
-	consoleUI.WriteTop("[green]Link to your screen sharing is: %s/x/%s#%s[white]\n\n", appConfig.Host, sessionID, encryptionKey)
-	consoleUI.WriteTop("********************************************************************************")
+	consoleUI.SetUrl(fmt.Sprintf("%s/x/%s#%s", appConfig.Host, sessionID, encryptionKey))
 
 	// Connecting to web socket before we start goroutine to send cursor coodinates.
 

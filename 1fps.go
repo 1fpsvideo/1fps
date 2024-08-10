@@ -127,30 +127,37 @@ func initEnvironment() {
 		WS_URL = "wss://" + REMOTE + "/x/%s/ws"
 	}
 	UPLOAD_URL = HOST + "/upload"
-
-	updateTopPanel()
-}
-
-func getEnvironmentType() string {
-	if isDevelopment {
-		return "Development"
-	}
-	return "Production"
 }
 
 func main() {
 	initUI()
 	initEnvironment()
 
+	// Try to get all the necessary info to start the console app.
+	// Do not use initialized UI before we're getting what we need: in case of an error
+	// we just need to print error to the console in a non-fancy way.
+
 	var err error
 	sessionID, err = createSession()
 	if err != nil {
-		logEvent(fmt.Sprintf("Failed to create session: %v", err))
-		os.Exit(1)
+		panic(fmt.Sprintf("Failed to create session: %v", err))
 	}
+
+	// Fanciness stars here. Start the console app. All the events below are getting
+	// logged with logEvent method only (this way they end up in a log window).
+	// App UI starts in its own goroutine.
+
+	go func() {
+		if err := app.Run(); err != nil {
+			panic(err)
+		}
+		os.Exit(0)
+	}()
 
 	encryptionKey = generateRandomKey(KEY_LENGTH)
 	updateTopPanel()
+
+	// Connecting to web socket before we start goroutine to send cursor coodinates.
 
 	for {
 		err := connectWebSocket()
@@ -162,39 +169,37 @@ func main() {
 	}
 	defer conn.Close()
 
+	// Sending cursor coodinates.
+
 	go sendCursorPosition()
 
-	go func() {
-		for {
-			img := captureScreen()
+	// Main loop: capture screen, compare, encrypt, send, pause, repeat.
 
-			if !imagesEqual(img, lastScreenshot) {
-				logEvent("Images are not equal. Uploading new screenshot.")
-				encryptedData, err := resizeAndEncryptScreen(img)
-				if err != nil {
-					logEvent(fmt.Sprintf("Failed to resize and encrypt screenshot: %v", err))
-					continue
-				}
-				for {
-					err := uploadEncryptedScreen(encryptedData)
-					if err == nil {
-						lastScreenshot = img
-						break
-					}
-					logEvent(fmt.Sprintf("Failed to upload screenshot: %v. Retrying...", err))
-					time.Sleep(1 * time.Second)
-				}
-			} else {
-				logEvent("Images are equal. Skipping upload.")
+	for {
+		img := captureScreen()
+
+		if !imagesEqual(img, lastScreenshot) {
+			logEvent("Images are not equal. Uploading new screenshot.")
+			encryptedData, err := resizeAndEncryptScreen(img)
+			if err != nil {
+				logEvent(fmt.Sprintf("Failed to resize and encrypt screenshot: %v", err))
+				continue
 			}
-
-			// Sleep for 950ms before the next iteration
-			time.Sleep(950 * time.Millisecond)
+			for {
+				err := uploadEncryptedScreen(encryptedData)
+				if err == nil {
+					lastScreenshot = img
+					break
+				}
+				logEvent(fmt.Sprintf("Failed to upload screenshot: %v. Retrying...", err))
+				time.Sleep(1 * time.Second)
+			}
+		} else {
+			logEvent("Images are equal. Skipping upload.")
 		}
-	}()
 
-	if err := app.Run(); err != nil {
-		panic(err)
+		// Sleep for 950ms before the next iteration
+		time.Sleep(950 * time.Millisecond)
 	}
 }
 

@@ -21,7 +21,7 @@ func GetCursorPosition(resizedDimensions ResizedDimensions, bounds image.Rectang
 
 	// Step 2: Get the actual screen size (considering the scale factor)
 	// This gives us the true pixel dimensions of the screen
-	actualWidth, actualHeight := robotgo.GetScaleSize()
+	actualWidth, _ := robotgo.GetScaleSize()
 
 	// Step 3: Adjust cursor position according to the scale
 	// This is necessary because Windows might report cursor positions beyond the actual screen size due to scaling

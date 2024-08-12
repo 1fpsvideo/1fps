@@ -47,11 +47,34 @@ var (
 
 	consoleUI *consoleui.ConsoleUI
 	appConfig *appconfig.AppConfig
+
+	// Store the bounds of all displays
+	displayBounds []image.Rectangle
 )
 
 // log logs an event to the bottom panel
 func log(message string) {
 	consoleUI.WriteBottom(message)
+}
+
+// updateDisplayBounds updates the bounds of all active displays
+func updateDisplayBounds() {
+	n := screenshot.NumActiveDisplays()
+	displayBounds = make([]image.Rectangle, n)
+	for i := 0; i < n; i++ {
+		displayBounds[i] = screenshot.GetDisplayBounds(i)
+	}
+	//log(fmt.Sprintf("Updated display bounds: %v", displayBounds))
+}
+
+// getSelectedDisplayBounds returns the bounds of the currently selected display
+func getSelectedDisplayBounds() image.Rectangle {
+	selectedIndex := consoleUI.GetSelectedDisplayIndex()
+	if selectedIndex >= 0 && selectedIndex < len(displayBounds) {
+		return displayBounds[selectedIndex]
+	}
+	// Return a default rectangle if the index is out of bounds
+	return image.Rectangle{}
 }
 
 func main() {
@@ -74,6 +97,9 @@ func main() {
 	consoleUI = consoleui.Start()
 	encryptionKey = generateRandomKey(KEY_LENGTH)
 	consoleUI.SetUrl(fmt.Sprintf("%s/x/%s#%s", appConfig.Host, sessionID, encryptionKey))
+
+	// Update display bounds before connecting to WebSocket
+	updateDisplayBounds()
 
 	// Connecting to web socket before we start goroutine to send cursor coodinates.
 
@@ -164,7 +190,11 @@ func connectWebSocket() error {
 func sendCursorPosition() {
 	var lastX, lastY int
 	for {
-		scaledX, scaledY := cursor.GetCursorPosition(resizedDimensions)
+		// Get the bounds of the currently selected display
+		bounds := getSelectedDisplayBounds()
+
+		// Pass both resizedDimensions and display bounds to GetCursorPosition
+		scaledX, scaledY := cursor.GetCursorPosition(cursor.ResizedDimensions(resizedDimensions), bounds)
 
 		if scaledX != lastX || scaledY != lastY {
 			data := map[string]int{
@@ -201,9 +231,13 @@ func captureScreen() image.Image {
 			time.Sleep(1 * time.Second)
 			continue
 		}
+		consoleUI.SyncNumOfActiveDisplays(n)
 
-		// Capture the first display as an example
-		bounds := screenshot.GetDisplayBounds(0)
+		// Update display bounds before capturing the screen
+		updateDisplayBounds()
+
+		// Capture the selected display
+		bounds := getSelectedDisplayBounds()
 		img, err := screenshot.CaptureRect(bounds)
 		if err != nil {
 			log("Failed to capture screen: cannot capture display: locked or switched off, retrying...")

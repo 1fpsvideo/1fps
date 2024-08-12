@@ -24,12 +24,15 @@ const (
 )
 
 type ConsoleUI struct {
-	app         *tview.Application
-	topPanel    *tview.Form
-	bottomPanel *tview.TextView
-	url         string
-	ScreenSize  ScreenSize
-	Quality     Quality
+	app                  *tview.Application
+	topPanel             *tview.Form
+	bottomPanel          *tview.TextView
+	url                  string
+	ScreenSize           ScreenSize
+	Quality              Quality
+	numOfActiveDisplays  int
+	selectedDisplayIndex int
+	displayDropdown      *tview.DropDown
 }
 
 func (ui *ConsoleUI) init() {
@@ -38,11 +41,14 @@ func (ui *ConsoleUI) init() {
 	// Create the top panel for static information and settings
 	ui.topPanel = tview.NewForm().
 		AddTextView("Your URL:", ui.url, 0, 1, false, false).
-		AddTextView("Instructions:", "Use Tab to jump between options.\nUse Up/Down arrows to select, Enter to confirm.\nSettings will be applied on the fly.", 0, 3, false, false).
-		AddDropDown("Screen size:", []string{"Small", "Medium", "Large"}, int(ui.ScreenSize), func(text string, index int) {
-			ui.ScreenSize = ScreenSize(index)
-			go func() { ui.WriteBottom("Screen size set to %s", text) }()
-		}).
+		AddTextView("Instructions:", "Use Tab to jump between options. Use Up/Down arrows to select, Enter to confirm.\nSettings will be applied on the fly.", 0, 2, false, false)
+
+	ui.updateDisplayDropdown()
+
+	ui.topPanel.AddDropDown("Screen size:", []string{"Small", "Medium", "Large"}, int(ui.ScreenSize), func(text string, index int) {
+		ui.ScreenSize = ScreenSize(index)
+		go func() { ui.WriteBottom("Screen size set to %s", text) }()
+	}).
 		AddDropDown("Quality:", []string{"Low", "Normal", "High"}, int(ui.Quality), func(text string, index int) {
 			ui.Quality = Quality(index)
 			go func() { ui.WriteBottom("Quality set to %s", text) }()
@@ -68,6 +74,44 @@ func (ui *ConsoleUI) init() {
 
 	// Clear bottom panel
 	ui.bottomPanel.Clear()
+}
+
+func (ui *ConsoleUI) updateDisplayDropdown() {
+	var displayOptions []string
+
+	if ui.numOfActiveDisplays == 0 {
+		displayOptions = []string{"Looking for displays..."}
+	} else {
+		displayOptions = make([]string, ui.numOfActiveDisplays)
+		for i := 0; i < ui.numOfActiveDisplays; i++ {
+			displayOptions[i] = fmt.Sprintf("Display %d", i+1)
+		}
+	}
+
+	if ui.displayDropdown == nil {
+		ui.topPanel.AddDropDown("Display:", displayOptions, 0, func(text string, index int) {
+			ui.selectedDisplayIndex = index
+			go func() { ui.WriteBottom("Display set to %s", text) }()
+		})
+		ui.displayDropdown = ui.topPanel.GetFormItem(ui.topPanel.GetFormItemCount() - 1).(*tview.DropDown)
+	} else {
+		ui.displayDropdown.SetOptions(displayOptions, func(text string, index int) {
+			ui.selectedDisplayIndex = index
+			go func() { ui.WriteBottom("Display set to %s", text) }()
+		})
+	}
+}
+
+func (ui *ConsoleUI) SyncNumOfActiveDisplays(num int) {
+	if ui.numOfActiveDisplays != num {
+		ui.numOfActiveDisplays = num
+		ui.updateDisplayDropdown()
+		ui.app.Draw()
+	}
+}
+
+func (ui *ConsoleUI) GetSelectedDisplayIndex() int {
+	return ui.selectedDisplayIndex
 }
 
 func (ui *ConsoleUI) SetUrl(url string) {

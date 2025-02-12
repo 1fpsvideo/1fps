@@ -22,16 +22,16 @@ This is the client component of the 1fps Screen Share application. The server pa
 You can run the client application in one of the following ways:
 
 1. Build and run:
-   ```
+   ```shell
    go build 1fps.go
    ./1fps
    ```
 
-2. Run directly:
+2. Run directly either:
+   ```shell
+   go run github.com/1fpsvideo/1fps@latest
    ```
-   go run github.com/1fpsvideo/1fps@v0.1.1
-   ```
-   Replace `v0.1.1` with the latest version from [tags](https://github.com/1fpsvideo/1fps/tags).
+   or replace `latest` with specific version, example `v0.1.11`, from [tags](https://github.com/1fpsvideo/1fps/tags).
 
 Note: Windows users should scroll down to the Windows section for specific compilation steps.
 
@@ -41,7 +41,7 @@ Linux users might need to install additional dependencies for the screen capture
 
 For Ubuntu or Debian-based distributions:
 
-```
+```shell
 sudo apt install libxtst-dev
 ```
 
@@ -60,15 +60,21 @@ Compiling on Windows requires a few additional steps. Please follow these instru
    - Download the exe file, which will automatically unpack (probably to your Downloads folder)
    - Run `w64devkit.exe`
 3. In the w64devkit terminal, type:
-   ```
+   ```Powershell
    go env -w CGO_ENABLED=1
    ```
 4. Run the main command from the 1fps.video website. **It's better to copy the command directly [from the website](https://1fps.video/) or use the latest version [from the tags](https://github.com/1fpsvideo/1fps/tags)**:
+   ```Powershell
+   go run github.com/1fpsvideo/1fps@latest
    ```
-   go run github.com/1fpsvideo/1fps@v0.1.1
+   or, for specific version/tag, for example `v0.1.11`:
+   ```Powershell
+   go run github.com/1fpsvideo/1fps@v0.1.11
    ```
 
+
 Please note that these steps are necessary until we produce binaries for Windows. We understand that compiling on Windows has been challenging for various software projects. We're currently in alpha, so please check back later for easier installation options with pre-compiled binaries.
+Also, good news, once you built exe binary on Windows, you may use it without w64devkit.
 
 ## Development
 

@@ -6,6 +6,10 @@ This is the client component of the 1fps Screen Share application. The server pa
 
 1fps Client is a Go application that captures screenshots, encrypts them, and uploads them to the server at 1 frame per second (fps). It also includes real-time cursor position tracking.
 
+## Download
+
+Pre-built binaries for Linux, Windows, and macOS are available from the [Releases page](https://github.com/1fpsvideo/1fps/releases).
+
 ## Features
 
 - Screen capture at 1 fps

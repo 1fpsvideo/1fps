@@ -53,28 +53,36 @@ https://github.com/go-vgo/robotgo?tab=readme-ov-file#ubuntu
 
 ## Windows Users
 
-Compiling on Windows requires a few additional steps. Please follow these instructions:
+### Cross-compilation from Linux (Recommended)
 
-1. Install Golang, for example from https://webinstall.dev/golang/
-2. Install the GCC compiler pack from https://github.com/skeeto/w64devkit/releases
-   - Download the exe file, which will automatically unpack (probably to your Downloads folder)
-   - Run `w64devkit.exe`
-3. In the w64devkit terminal, type:
-   ```Powershell
-   go env -w CGO_ENABLED=1
-   ```
-4. Run the main command from the 1fps.video website. **It's better to copy the command directly [from the website](https://1fps.video/) or use the latest version [from the tags](https://github.com/1fpsvideo/1fps/tags)**:
-   ```Powershell
-   go run github.com/1fpsvideo/1fps@latest
-   ```
-   or, for specific version/tag, for example `v0.1.11`:
-   ```Powershell
-   go run github.com/1fpsvideo/1fps@v0.1.11
+Due to the complexity of Windows tooling for CGO-based projects, we recommend building Windows executables from Linux using cross-compilation:
+
+1. Install MinGW-w64 cross-compiler:
+   ```bash
+   sudo apt update
+   sudo apt install -y gcc-mingw-w64-x86-64 g++-mingw-w64-x86-64
    ```
 
+2. Build the Windows executable:
+   ```bash
+   export GOOS=windows
+   export GOARCH=amd64
+   export CGO_ENABLED=1
+   export CC=x86_64-w64-mingw32-gcc
+   export CXX=x86_64-w64-mingw32-g++
+   go build -ldflags="-w -s -extldflags '-static'" -o 1fps.exe
+   ```
 
-Please note that these steps are necessary until we produce binaries for Windows. We understand that compiling on Windows has been challenging for various software projects. We're currently in alpha, so please check back later for easier installation options with pre-compiled binaries.
-Also, good news, once you built exe binary on Windows, you may use it without w64devkit.
+This will produce a statically-linked `1fps.exe` that can run on Windows without additional dependencies.
+
+### Native Windows Compilation
+
+Native Windows compilation with CGO is challenging. If you have working instructions for compiling this project natively on Windows, please contribute them via a pull request or issue.
+
+For now, you can try:
+- Using WSL2 with the Linux cross-compilation method above
+- Running the pre-built executable if available in releases
+- Using `go run github.com/1fpsvideo/1fps@latest` with proper MinGW setup (may not work due to CGO issues)
 
 ## Development
 

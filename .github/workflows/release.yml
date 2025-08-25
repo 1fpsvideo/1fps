@@ -80,6 +80,8 @@ jobs:
   create-release:
     needs: [build-linux-windows, build-macos]
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     
     steps:
     - name: Download all artifacts

@@ -6,7 +6,7 @@ on:
       - 'v*'
 
 jobs:
-  build:
+  build-linux-windows:
     runs-on: ubuntu-latest
     
     steps:
@@ -38,26 +38,66 @@ jobs:
         CC=x86_64-w64-mingw32-gcc CXX=x86_64-w64-mingw32-g++ \
         go build -ldflags="-w -s -extldflags '-static'" -o 1fps-windows-amd64.exe
     
-    - name: Build for macOS (without CGO for now)
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: linux-windows-builds
+        path: |
+          1fps-linux-amd64.tar.gz
+          1fps-windows-amd64.exe
+
+  build-macos:
+    runs-on: macos-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.25'
+    
+    - name: Build for macOS Intel
       run: |
-        GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 \
-        go build -ldflags="-w -s" -o 1fps-darwin-amd64
+        GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-w -s" -o 1fps-darwin-amd64
         chmod +x 1fps-darwin-amd64
         tar -czf 1fps-darwin-amd64.tar.gz 1fps-darwin-amd64
-        
-        GOOS=darwin GOARCH=arm64 CGO_ENABLED=0 \
-        go build -ldflags="-w -s" -o 1fps-darwin-arm64
+    
+    - name: Build for macOS Apple Silicon
+      run: |
+        GOARCH=arm64 CGO_ENABLED=1 go build -ldflags="-w -s" -o 1fps-darwin-arm64
         chmod +x 1fps-darwin-arm64
         tar -czf 1fps-darwin-arm64.tar.gz 1fps-darwin-arm64
+    
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: macos-builds
+        path: |
+          1fps-darwin-amd64.tar.gz
+          1fps-darwin-arm64.tar.gz
+
+  create-release:
+    needs: [build-linux-windows, build-macos]
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: artifacts
+    
+    - name: List artifacts
+      run: ls -R artifacts/
     
     - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
         files: |
-          1fps-linux-amd64.tar.gz
-          1fps-windows-amd64.exe
-          1fps-darwin-amd64.tar.gz
-          1fps-darwin-arm64.tar.gz
+          artifacts/linux-windows-builds/1fps-linux-amd64.tar.gz
+          artifacts/linux-windows-builds/1fps-windows-amd64.exe
+          artifacts/macos-builds/1fps-darwin-amd64.tar.gz
+          artifacts/macos-builds/1fps-darwin-arm64.tar.gz
         generate_release_notes: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
